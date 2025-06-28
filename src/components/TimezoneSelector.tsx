@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { format } from 'date-fns';
-import { useTimezone } from '../contexts/TimezoneContext';
 
 interface DateSelectorProps {
   value?: string;
@@ -14,7 +13,6 @@ export const DateSelector: React.FC<DateSelectorProps> = ({
   placeholder = "Select date"
 }) => {
   const [selectedDate, setSelectedDate] = useState<string>(value || '');
-  const { userTimezone, convertToUtc, convertToUserTimezone } = useTimezone();
 
   const handleDateChange = (dateString: string) => {
     if (!dateString) {
@@ -23,17 +21,15 @@ export const DateSelector: React.FC<DateSelectorProps> = ({
       return;
     }
 
-    // FIXED: Now uses TimezoneContext instead of basic Date constructor
     const localDate = new Date(dateString);
-    const utcDate = convertToUtc(localDate);
-    const isoString = utcDate.toISOString();
+    const isoString = localDate.toISOString();
     
     setSelectedDate(dateString);
     onChange(isoString);
   };
 
   const displayDate = selectedDate ? 
-    format(convertToUserTimezone(new Date(selectedDate)), 'PPP') : 
+    format(new Date(selectedDate), 'PPP') : 
     '';
 
   return (
@@ -47,10 +43,12 @@ export const DateSelector: React.FC<DateSelectorProps> = ({
         />
         {displayDate && (
           <div className="date-display">
-            Selected: {displayDate} ({userTimezone})
+            Selected: {displayDate}
           </div>
         )}
       </div>
     </div>
   );
 };
+
+
