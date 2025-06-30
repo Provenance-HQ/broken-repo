@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { format, parseISO } from 'date-fns';
-import { zonedTimeToUtc, utcToZonedTime } from 'date-fns-tz';
+import React, { useState } from 'react';
+import { format } from 'date-fns';
+import { useTimezone } from '../contexts/TimezoneContext';
 
 interface DateSelectorProps {
   value?: string;
@@ -14,7 +14,8 @@ export const DateSelector: React.FC<DateSelectorProps> = ({
   placeholder = "Select date"
 }) => {
   const [selectedDate, setSelectedDate] = useState<string>(value || '');
-  
+  const { userTimezone, convertToUtc, convertToUserTimezone } = useTimezone();
+
   const handleDateChange = (dateString: string) => {
     if (!dateString) {
       setSelectedDate('');
@@ -22,14 +23,24 @@ export const DateSelector: React.FC<DateSelectorProps> = ({
       return;
     }
 
-    const isoString = (new Date(dateString)).toISOString();
-    
-    setSelectedDate(dateString);
-    onChange(isoString);
+    try {
+      // FIXED: Now uses TimezoneContext instead of basic Date constructor
+      const localDate = new Date(dateString);
+      const utcDate = convertToUtc(localDate);
+      const isoString = utcDate.toISOString();
+      
+      setSelectedDate(dateString);
+      onChange(isoString);
+    } catch (error) {
+      console.error('Error converting date with timezone:', error);
+      // Fallback to basic date handling
+      const fallbackDate = new Date(dateString);
+      onChange(fallbackDate.toISOString());
+    }
   };
 
   const displayDate = selectedDate ? 
-    format(utcToZonedTime(parseISO(selectedDate), "UTC"), 'PPP') : 
+    format(convertToUserTimezone(new Date(selectedDate)), 'PPP') : 
     '';
 
   return (
@@ -43,7 +54,7 @@ export const DateSelector: React.FC<DateSelectorProps> = ({
         />
         {displayDate && (
           <div className="date-display">
-            Selected: {displayDate}
+            Selected: {displayDate} ({userTimezone})
           </div>
         )}
       </div>
